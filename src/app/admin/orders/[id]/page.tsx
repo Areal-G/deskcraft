@@ -18,11 +18,14 @@ export default async function AdminOrderPage({ params }: PageProps<"/admin/order
   if (!order) notFound();
 
   const nextStatuses = allowedNextStatuses(order.status, order.payment_status).filter((s) => s !== "paid");
-  const fmt = (d: string | null) => (d ? new Date(d).toLocaleString("pt-BR") : "—");
+  const fmt = (d: string | null) => (d ? new Date(d).toLocaleString("en-US") : "—");
 
   return (
     <div className="space-y-6">
-      <Link href="/admin/orders" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href="/admin/orders"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ChevronLeft className="size-4" /> All orders
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">

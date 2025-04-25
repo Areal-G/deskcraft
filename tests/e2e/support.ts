@@ -4,7 +4,8 @@ import { expect, type Page } from "@playwright/test";
 function admin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error("E2E tests need NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local");
+  if (!url || !key)
+    throw new Error("E2E tests need NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local");
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
@@ -42,7 +43,7 @@ export async function markOrderPaid(orderId: string) {
     p_session_id: `cs_test_e2e${crypto.randomUUID().replace(/-/g, "")}`,
     p_payment_intent_id: "pi_e2e",
     p_amount_total: order!.total_cents,
-    p_currency: "brl",
+    p_currency: "usd",
     p_outcome: "paid",
   });
   if (error) throw error;
@@ -67,7 +68,11 @@ export async function deleteUserOrders(userId: string) {
     for (const item of order.items as { product_id: string | null; quantity: number }[]) {
       if (!item.product_id) continue;
       const { data: p } = await client.from("products").select("stock_quantity").eq("id", item.product_id).single();
-      if (p) await client.from("products").update({ stock_quantity: p.stock_quantity + item.quantity }).eq("id", item.product_id);
+      if (p)
+        await client
+          .from("products")
+          .update({ stock_quantity: p.stock_quantity + item.quantity })
+          .eq("id", item.product_id);
     }
   }
   await client.from("orders").delete().eq("user_id", userId);
@@ -108,7 +113,9 @@ export async function getAuthEmailLink(email: string): Promise<string> {
     const search = await fetch(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}&limit=1`);
     const { messages } = (await search.json()) as { messages: { ID: string }[] };
     if (messages?.length) {
-      const message = (await (await fetch(`${MAILPIT_URL}/api/v1/message/${messages[0].ID}`)).json()) as { Text: string };
+      const message = (await (await fetch(`${MAILPIT_URL}/api/v1/message/${messages[0].ID}`)).json()) as {
+        Text: string;
+      };
       const link = message.Text.match(/https?:\/\/\S+\/auth\/v1\/verify\S+/)?.[0];
       if (link) return link.replace(/&amp;/g, "&").replace(/[)\]>]+$/, "");
     }
@@ -125,4 +132,4 @@ export async function mailpitAvailable(): Promise<boolean> {
   }
 }
 
-export const stripeConfigured =Boolean(process.env.STRIPE_SECRET_KEY);
+export const stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);

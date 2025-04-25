@@ -55,7 +55,11 @@ export async function getProductForEdit(id: string) {
 
 export async function listAllOrders(status?: OrderStatus) {
   const supabase = await createClient();
-  let query = supabase.from("orders").select("*, items:order_items(quantity)").order("created_at", { ascending: false }).limit(100);
+  let query = supabase
+    .from("orders")
+    .select("*, items:order_items(quantity)")
+    .order("created_at", { ascending: false })
+    .limit(100);
   if (status) query = query.eq("status", status);
   const { data, error } = await query;
   if (error) throw new Error(`Failed to load orders: ${error.message}`);

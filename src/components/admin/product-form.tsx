@@ -70,7 +70,13 @@ export function ProductForm({
         />
         <div className="space-y-2">
           <Label htmlFor="field-description">Description</Label>
-          <Textarea id="field-description" name="description" rows={6} defaultValue={product?.description} maxLength={4000} />
+          <Textarea
+            id="field-description"
+            name="description"
+            rows={6}
+            defaultValue={product?.description}
+            maxLength={4000}
+          />
           {errors.description && <p className="text-sm text-destructive">{errors.description[0]}</p>}
         </div>
         <Field
@@ -109,10 +115,10 @@ export function ProductForm({
           </div>
           <Field
             name="price"
-            label="Price (R$)"
+            label="Price ($)"
             inputMode="decimal"
-            defaultValue={product ? (product.priceCents / 100).toFixed(2).replace(".", ",") : ""}
-            placeholder="899,90"
+            defaultValue={product ? (product.priceCents / 100).toFixed(2) : ""}
+            placeholder="149.90"
             required
             error={errors.price}
           />

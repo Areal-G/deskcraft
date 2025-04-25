@@ -14,12 +14,7 @@ export type CheckoutEventCommand = {
 };
 
 export type ApplyResult =
-  | "processed"
-  | "duplicate"
-  | "ignored"
-  | "amount_mismatch"
-  | "order_not_found"
-  | "paid_after_cancel";
+  "processed" | "duplicate" | "ignored" | "amount_mismatch" | "order_not_found" | "paid_after_cancel";
 
 export type WebhookDeps = {
   /** Atomically records the event id and applies the state transition. */
@@ -85,10 +80,7 @@ export function toCheckoutCommand(event: Stripe.Event): CheckoutEventCommand | n
  * database reports a fresh transition, so redelivered or duplicate events never
  * fulfil an order twice. Throws if the database write fails so Stripe retries.
  */
-export async function processStripeEvent(
-  event: Stripe.Event,
-  deps: WebhookDeps,
-): Promise<ApplyResult | "unhandled"> {
+export async function processStripeEvent(event: Stripe.Event, deps: WebhookDeps): Promise<ApplyResult | "unhandled"> {
   const command = toCheckoutCommand(event);
   if (!command) return "unhandled";
 

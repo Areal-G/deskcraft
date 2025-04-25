@@ -38,12 +38,17 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
       <div className="mb-8 space-y-2">
         <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
         <p className="text-sm text-muted-foreground">
-          {activeCategory && !query.q ? activeCategory.description : `${products.length} product${products.length === 1 ? "" : "s"}`}
+          {activeCategory && !query.q
+            ? activeCategory.description
+            : `${products.length} product${products.length === 1 ? "" : "s"}`}
         </p>
       </div>
 
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <nav aria-label="Filter by category" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        <nav
+          aria-label="Filter by category"
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
+        >
           {[{ slug: undefined, name: "All" }, ...categories].map((c) => {
             const active = c.slug === query.category;
             return (
@@ -70,7 +75,11 @@ export default async function ProductsPage({ searchParams }: PageProps<"/product
         <EmptyState
           icon={SearchX}
           title="No products found"
-          description={query.q ? "Try a different search term or browse all products." : "There are no products in this category yet."}
+          description={
+            query.q
+              ? "Try a different search term or browse all products."
+              : "There are no products in this category yet."
+          }
         >
           <Button asChild variant="outline">
             <Link href="/products">Clear filters</Link>

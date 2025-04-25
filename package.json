@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "test:db": "npx supabase test db",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "db:reset": "npx supabase db reset",
     "db:types": "npx supabase gen types typescript --local > src/lib/types/database.ts",
     "seed:users": "node --env-file=.env.local scripts/seed-users.mts"

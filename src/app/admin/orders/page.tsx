@@ -19,7 +19,10 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
 
   return (
     <div className="space-y-4">
-      <nav aria-label="Filter orders" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+      <nav
+        aria-label="Filter orders"
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
+      >
         {[undefined, ...FILTERS].map((s) => (
           <Link
             key={s ?? "all"}
@@ -61,11 +64,13 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
                     <Link href={`/admin/orders/${o.id}`} className="font-medium hover:underline">
                       {formatOrderNumber(o.order_number)}
                     </Link>
-                    <p className="text-xs text-muted-foreground">{o.items.reduce((n, i) => n + i.quantity, 0)} item(s)</p>
+                    <p className="text-xs text-muted-foreground">
+                      {o.items.reduce((n, i) => n + i.quantity, 0)} item(s)
+                    </p>
                   </TableCell>
                   <TableCell className="hidden max-w-56 truncate md:table-cell">{o.customer_email}</TableCell>
                   <TableCell className="hidden text-muted-foreground sm:table-cell">
-                    {new Date(o.created_at).toLocaleDateString("pt-BR")}
+                    {new Date(o.created_at).toLocaleDateString("en-US")}
                   </TableCell>
                   <TableCell>
                     <OrderStatusBadge status={o.status} />

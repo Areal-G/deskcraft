@@ -49,7 +49,10 @@ describe.skipIf(!enabled)("POST /api/webhooks/stripe (integration)", () => {
     const held = (orders ?? []).flatMap((o) => o.items).reduce((n, i) => n + i.quantity, 0);
     if (held > 0) {
       const { data: p } = await admin.from("products").select("stock_quantity").eq("id", product.id).single();
-      await admin.from("products").update({ stock_quantity: p!.stock_quantity + held }).eq("id", product.id);
+      await admin
+        .from("products")
+        .update({ stock_quantity: p!.stock_quantity + held })
+        .eq("id", product.id);
     }
     await admin.from("orders").delete().eq("user_id", userId);
     await admin.auth.admin.deleteUser(userId);
@@ -79,7 +82,13 @@ describe.skipIf(!enabled)("POST /api/webhooks/stripe (integration)", () => {
     });
   }
 
-  function sessionEvent(type: string, orderId: string, sessionId: string, amount: number, eventId = `evt_${crypto.randomUUID()}`) {
+  function sessionEvent(
+    type: string,
+    orderId: string,
+    sessionId: string,
+    amount: number,
+    eventId = `evt_${crypto.randomUUID()}`,
+  ) {
     return {
       id: eventId,
       object: "event",
@@ -91,7 +100,7 @@ describe.skipIf(!enabled)("POST /api/webhooks/stripe (integration)", () => {
           payment_status: type === "checkout.session.expired" ? "unpaid" : "paid",
           payment_intent: "pi_test_123",
           amount_total: amount,
-          currency: "brl",
+          currency: "usd",
           client_reference_id: orderId,
           metadata: { order_id: orderId },
         },
@@ -132,7 +141,12 @@ describe.skipIf(!enabled)("POST /api/webhooks/stripe (integration)", () => {
     const retry = await POST(signedRequest(event));
     expect(await retry.json()).toMatchObject({ result: "duplicate" });
 
-    const otherEvent = sessionEvent("checkout.session.async_payment_succeeded", orderId, sessionId, product.price_cents);
+    const otherEvent = sessionEvent(
+      "checkout.session.async_payment_succeeded",
+      orderId,
+      sessionId,
+      product.price_cents,
+    );
     expect(await (await POST(signedRequest(otherEvent))).json()).toMatchObject({ result: "ignored" });
 
     const { data: order } = await admin.from("orders").select("*").eq("id", orderId).single();
@@ -154,7 +168,9 @@ describe.skipIf(!enabled)("POST /api/webhooks/stripe (integration)", () => {
     const { orderId, sessionId } = await createOrder(3);
     expect(await stockOf()).toBe(before - 3);
 
-    const res = await POST(signedRequest(sessionEvent("checkout.session.expired", orderId, sessionId, product.price_cents * 3)));
+    const res = await POST(
+      signedRequest(sessionEvent("checkout.session.expired", orderId, sessionId, product.price_cents * 3)),
+    );
     expect(await res.json()).toMatchObject({ result: "processed" });
 
     const { data: order } = await admin.from("orders").select("status").eq("id", orderId).single();

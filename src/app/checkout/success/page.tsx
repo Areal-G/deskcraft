@@ -28,7 +28,11 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps<"/
   if (!order) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-        <EmptyState icon={XCircle} title="Order not found" description="We couldn't find an order for this checkout session in your account.">
+        <EmptyState
+          icon={XCircle}
+          title="Order not found"
+          description="We couldn't find an order for this checkout session in your account."
+        >
           <Button asChild variant="outline">
             <Link href="/account/orders">View my orders</Link>
           </Button>

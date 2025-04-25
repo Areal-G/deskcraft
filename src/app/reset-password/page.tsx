@@ -12,7 +12,10 @@ export default async function ResetPasswordPage() {
   const user = await getCurrentUser();
   if (!user) {
     return (
-      <AuthCard title="Reset link expired" description="Password reset links are valid for a limited time. Request a new one to continue.">
+      <AuthCard
+        title="Reset link expired"
+        description="Password reset links are valid for a limited time. Request a new one to continue."
+      >
         <Button asChild className="h-11 w-full">
           <Link href="/forgot-password">Request a new link</Link>
         </Button>

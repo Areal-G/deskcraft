@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: { default: `${STORE_NAME} — Gear for focused work and play`, template: `%s · ${STORE_NAME}` },
-  description: "Keyboards, mice, audio, monitors and accessories. A portfolio e-commerce demo built with Next.js, Supabase and Stripe.",
+  description: "Keyboards, mice, audio, monitors and accessories. Considered gear for focused work and play.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
 };
 

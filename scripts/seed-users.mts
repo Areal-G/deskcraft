@@ -26,7 +26,12 @@ type DemoUser = { email: string; password: string; fullName: string; role: "admi
 
 const users: DemoUser[] = [
   { email: env("DEMO_ADMIN_EMAIL"), password: env("DEMO_ADMIN_PASSWORD"), fullName: "Ada Admin", role: "admin" },
-  { email: env("DEMO_CUSTOMER_EMAIL"), password: env("DEMO_CUSTOMER_PASSWORD"), fullName: "Casey Customer", role: "customer" },
+  {
+    email: env("DEMO_CUSTOMER_EMAIL"),
+    password: env("DEMO_CUSTOMER_PASSWORD"),
+    fullName: "Casey Customer",
+    role: "customer",
+  },
 ];
 
 async function findUserId(email: string): Promise<string | null> {

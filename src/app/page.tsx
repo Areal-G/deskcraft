@@ -14,9 +14,6 @@ export default async function HomePage() {
       <section className="border-b bg-gradient-to-b from-muted/60 to-background">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 md:py-20 lg:grid-cols-2">
           <div className="space-y-6">
-            <p className="inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-xs font-medium text-muted-foreground">
-              <span className="size-1.5 rounded-full bg-brand" /> New season setup essentials
-            </p>
             <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
               Gear that disappears into your flow.
             </h1>
@@ -88,9 +85,13 @@ export default async function HomePage() {
       <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6">
         <div className="grid gap-6 rounded-3xl border bg-muted/40 p-8 sm:grid-cols-3">
           {[
-            { icon: Truck, title: "Free shipping", text: "On every order, delivered across Brazil." },
+            { icon: Truck, title: "Free shipping", text: "On every order, delivered nationwide." },
             { icon: RotateCcw, title: "30-day returns", text: "Changed your mind? Send it back, no questions." },
-            { icon: ShieldCheck, title: "Secure checkout", text: "Payments processed by Stripe. We never see your card." },
+            {
+              icon: ShieldCheck,
+              title: "Secure checkout",
+              text: "Payments processed by Stripe. We never see your card.",
+            },
           ].map(({ icon: Icon, title, text }) => (
             <div key={title} className="flex gap-4">
               <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-background shadow-sm">

@@ -37,14 +37,16 @@ export default async function OrdersPage() {
               <div>
                 <p className="font-semibold">{formatOrderNumber(o.order_number)}</p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(o.created_at).toLocaleDateString("pt-BR")} ·{" "}
-                  {o.items.reduce((n, i) => n + i.quantity, 0)} item(s)
+                  {new Date(o.created_at).toLocaleDateString("en-US")} · {o.items.reduce((n, i) => n + i.quantity, 0)}{" "}
+                  item(s)
                 </p>
               </div>
               <OrderStatusBadges status={o.status} paymentStatus={o.payment_status} />
               <p className="font-semibold tabular-nums">{formatPrice(o.total_cents)}</p>
             </div>
-            <p className="mt-3 truncate text-sm text-muted-foreground">{o.items.map((i) => i.product_name).join(", ")}</p>
+            <p className="mt-3 truncate text-sm text-muted-foreground">
+              {o.items.map((i) => i.product_name).join(", ")}
+            </p>
           </Link>
         </li>
       ))}

@@ -17,7 +17,11 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   if (!isAdmin(user)) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-20 sm:px-6">
-        <EmptyState icon={ShieldAlert} title="Access denied" description="You need an administrator account to view this page.">
+        <EmptyState
+          icon={ShieldAlert}
+          title="Access denied"
+          description="You need an administrator account to view this page."
+        >
           <Button asChild variant="outline">
             <Link href="/">Back to store</Link>
           </Button>

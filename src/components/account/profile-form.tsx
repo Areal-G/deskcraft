@@ -11,8 +11,22 @@ export function ProfileForm({ fullName, email }: { fullName: string; email: stri
   useActionToast(state);
   return (
     <form action={action} className="max-w-md space-y-4">
-      <Field name="fullName" label="Full name" defaultValue={fullName} autoComplete="name" required error={state.fieldErrors?.fullName} />
-      <Field name="email" label="Email" defaultValue={email} disabled readOnly hint="Your email address is used to sign in." />
+      <Field
+        name="fullName"
+        label="Full name"
+        defaultValue={fullName}
+        autoComplete="name"
+        required
+        error={state.fieldErrors?.fullName}
+      />
+      <Field
+        name="email"
+        label="Email"
+        defaultValue={email}
+        disabled
+        readOnly
+        hint="Your email address is used to sign in."
+      />
       <SubmitButton pendingText="Saving…">Save changes</SubmitButton>
     </form>
   );

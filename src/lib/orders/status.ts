@@ -38,5 +38,5 @@ export function canTransition(from: OrderStatus, to: OrderStatus, paymentStatus:
 }
 
 export function formatOrderNumber(orderNumber: number): string {
-  return `VL-${orderNumber}`;
+  return `DC-${orderNumber}`;
 }

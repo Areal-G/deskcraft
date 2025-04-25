@@ -42,7 +42,13 @@ export function AddToCart({ productId, name, stock }: { productId: string; name:
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <QuantityStepper value={Math.min(quantity, Math.max(1, remaining))} min={1} max={Math.max(1, remaining)} onChange={setQuantity} disabled={remaining === 0} />
+        <QuantityStepper
+          value={Math.min(quantity, Math.max(1, remaining))}
+          min={1}
+          max={Math.max(1, remaining)}
+          onChange={setQuantity}
+          disabled={remaining === 0}
+        />
         <Button size="lg" className="h-12 flex-1 text-base" onClick={handleAdd} disabled={remaining === 0}>
           <ShoppingBag className="size-5" />
           Add to cart

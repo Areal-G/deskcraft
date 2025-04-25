@@ -54,10 +54,16 @@ export const productIdsSchema = z.array(z.string().uuid()).max(MAX_CART_LINES);
 /** Only allow images from hosts configured in next.config.ts. */
 export const ALLOWED_IMAGE_HOSTS = ["images.unsplash.com"];
 
-/** Parses a BRL amount such as "899,90", "1.299,00" or "899.9" into integer centavos. */
+/** Product photos bundled with the app under public/products. */
+export const LOCAL_IMAGE_PATTERN = /^\/products\/[a-z0-9-]+\.(jpg|png|webp)$/;
+
+/** Parses a USD amount such as "149.90", "1,299.00" or "$49" into integer cents. */
 export function parsePriceToCents(value: string): number | null {
-  let v = value.trim().replace(/^R\$\s*/, "").replace(/\s/g, "");
-  if (v.includes(",")) v = v.replace(/\./g, "").replace(",", ".");
+  let v = value
+    .trim()
+    .replace(/^\$\s*/, "")
+    .replace(/\s/g, "");
+  if (/^\d{1,3}(,\d{3})+(\.\d{1,2})?$/.test(v)) v = v.replace(/,/g, "");
   if (!/^\d{1,7}(\.\d{1,2})?$/.test(v)) return null;
   return Math.round(Number(v) * 100);
 }
@@ -74,7 +80,7 @@ export const productFormSchema = z.object({
   description: z.string().trim().max(4000),
   categoryId: z.string().uuid("Choose a category."),
   priceCents: z
-    .number({ message: "Enter a valid price, e.g. 899,90." })
+    .number({ message: "Enter a valid price, e.g. 149.90." })
     .int()
     .min(1, "Price must be greater than zero.")
     .max(10_000_000, "Price is too high."),
@@ -87,15 +93,18 @@ export const productFormSchema = z.object({
     .string()
     .trim()
     .max(500)
-    .refine((v) => {
-      if (v === "") return true;
-      try {
-        const url = new URL(v);
-        return url.protocol === "https:" && ALLOWED_IMAGE_HOSTS.includes(url.hostname);
-      } catch {
-        return false;
-      }
-    }, `Image must be an https URL from: ${ALLOWED_IMAGE_HOSTS.join(", ")}.`)
+    .refine(
+      (v) => {
+        if (v === "" || LOCAL_IMAGE_PATTERN.test(v)) return true;
+        try {
+          const url = new URL(v);
+          return url.protocol === "https:" && ALLOWED_IMAGE_HOSTS.includes(url.hostname);
+        } catch {
+          return false;
+        }
+      },
+      `Image must be a /products/ path or an https URL from: ${ALLOWED_IMAGE_HOSTS.join(", ")}.`,
+    )
     .transform((v) => (v === "" ? null : v)),
   isActive: z.boolean(),
   isFeatured: z.boolean(),

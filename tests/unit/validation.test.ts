@@ -27,7 +27,15 @@ describe("checkoutSchema", () => {
     [{ items: [{ productId: uuid, quantity: 11 }] }, "above per-item limit"],
     [{ items: [{ productId: "not-a-uuid", quantity: 1 }] }, "invalid id"],
     [{ items: [{ productId: uuid, quantity: "2" }] }, "string quantity"],
-    [{ items: [{ productId: uuid, quantity: 1 }, { productId: uuid, quantity: 1 }] }, "duplicate products"],
+    [
+      {
+        items: [
+          { productId: uuid, quantity: 1 },
+          { productId: uuid, quantity: 1 },
+        ],
+      },
+      "duplicate products",
+    ],
   ])("rejects %j (%s)", (input) => {
     expect(checkoutSchema.safeParse(input).success).toBe(false);
   });
@@ -46,16 +54,16 @@ describe("checkoutSchema", () => {
 
 describe("parsePriceToCents", () => {
   it.each([
-    ["899,90", 89990],
+    ["899.90", 89990],
     ["899.9", 89990],
-    ["1.299,00", 129900],
-    ["R$ 49,99", 4999],
+    ["1,299.00", 129900],
+    ["$ 49.99", 4999],
     ["10", 1000],
   ])("parses %s", (input, cents) => {
     expect(parsePriceToCents(input)).toBe(cents);
   });
 
-  it.each(["", "abc", "-10", "1,999", "12.345", "1e5"])("rejects %s", (input) => {
+  it.each(["", "abc", "-10", "1,99", "12.345", "1e5"])("rejects %s", (input) => {
     expect(parsePriceToCents(input)).toBeNull();
   });
 });
@@ -81,6 +89,11 @@ describe("productFormSchema", () => {
     expect(productFormSchema.safeParse({ ...valid, imageUrl: "https://evil.example/x.png" }).success).toBe(false);
     expect(productFormSchema.safeParse({ ...valid, imageUrl: "http://images.unsplash.com/x" }).success).toBe(false);
     expect(productFormSchema.safeParse({ ...valid, imageUrl: "javascript:alert(1)" }).success).toBe(false);
+    expect(productFormSchema.safeParse({ ...valid, imageUrl: "/products/../secret.jpg" }).success).toBe(false);
+  });
+
+  it("accepts bundled product photos", () => {
+    expect(productFormSchema.safeParse({ ...valid, imageUrl: "/products/arc75.jpg" }).success).toBe(true);
   });
 
   it("rejects negative stock, zero price and malformed slugs", () => {
@@ -98,9 +111,9 @@ describe("other schemas", () => {
   });
 
   it("validates sign-up input", () => {
-    expect(signUpSchema.safeParse({ fullName: "Ana", email: "ANA@Example.com ", password: "longenough" }).data?.email).toBe(
-      "ana@example.com",
-    );
+    expect(
+      signUpSchema.safeParse({ fullName: "Ana", email: "ANA@Example.com ", password: "longenough" }).data?.email,
+    ).toBe("ana@example.com");
     expect(signUpSchema.safeParse({ fullName: "Ana", email: "nope", password: "longenough" }).success).toBe(false);
     expect(signUpSchema.safeParse({ fullName: "Ana", email: "a@b.co", password: "short" }).success).toBe(false);
   });

@@ -30,7 +30,14 @@ export function CartView({ signedIn }: { signedIn: boolean }) {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isCheckingOut, startTransition] = useTransition();
 
-  const idsKey = useMemo(() => lines.map((l) => l.productId).sort().join(","), [lines]);
+  const idsKey = useMemo(
+    () =>
+      lines
+        .map((l) => l.productId)
+        .sort()
+        .join(","),
+    [lines],
+  );
 
   useEffect(() => {
     if (!ready) return;
@@ -57,7 +64,11 @@ export function CartView({ signedIn }: { signedIn: boolean }) {
 
   if (lines.length === 0) {
     return (
-      <EmptyState icon={ShoppingBag} title="Your cart is empty" description="Browse the catalog and add something you love.">
+      <EmptyState
+        icon={ShoppingBag}
+        title="Your cart is empty"
+        description="Browse the catalog and add something you love."
+      >
         <Button asChild size="lg">
           <Link href="/products">Start shopping</Link>
         </Button>
@@ -67,7 +78,11 @@ export function CartView({ signedIn }: { signedIn: boolean }) {
 
   if (loadError || !products) {
     return (
-      <EmptyState icon={AlertCircle} title="We couldn't load your cart" description="Please check your connection and try again.">
+      <EmptyState
+        icon={AlertCircle}
+        title="We couldn't load your cart"
+        description="Please check your connection and try again."
+      >
         <Button onClick={() => window.location.reload()}>Try again</Button>
       </EmptyState>
     );
@@ -112,9 +127,17 @@ export function CartView({ signedIn }: { signedIn: boolean }) {
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h2 className="font-medium">
-                        {p ? <Link href={`/products/${p.slug}`} className="hover:underline">{p.name}</Link> : "Unavailable product"}
+                        {p ? (
+                          <Link href={`/products/${p.slug}`} className="hover:underline">
+                            {p.name}
+                          </Link>
+                        ) : (
+                          "Unavailable product"
+                        )}
                       </h2>
-                      {p && <p className="text-sm text-muted-foreground tabular-nums">{formatPrice(p.priceCents)} each</p>}
+                      {p && (
+                        <p className="text-sm text-muted-foreground tabular-nums">{formatPrice(p.priceCents)} each</p>
+                      )}
                     </div>
                     <p className="font-semibold tabular-nums">{formatPrice(line.lineTotalCents)}</p>
                   </div>
@@ -136,7 +159,12 @@ export function CartView({ signedIn }: { signedIn: boolean }) {
                     ) : (
                       <span />
                     )}
-                    <Button variant="ghost" size="sm" onClick={() => remove(line.productId)} className="text-muted-foreground">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => remove(line.productId)}
+                      className="text-muted-foreground"
+                    >
                       <Trash2 /> Remove
                     </Button>
                   </div>
@@ -163,7 +191,9 @@ export function CartView({ signedIn }: { signedIn: boolean }) {
           </div>
           <div className="flex justify-between border-t pt-3 text-base font-semibold">
             <dt>Total</dt>
-            <dd className="tabular-nums" data-testid="cart-total">{formatPrice(summary.totalCents)}</dd>
+            <dd className="tabular-nums" data-testid="cart-total">
+              {formatPrice(summary.totalCents)}
+            </dd>
           </div>
         </dl>
 
@@ -174,7 +204,12 @@ export function CartView({ signedIn }: { signedIn: boolean }) {
         )}
 
         {signedIn ? (
-          <Button size="lg" className="mt-6 h-12 w-full text-base" onClick={checkout} disabled={!summary.canCheckout || isCheckingOut}>
+          <Button
+            size="lg"
+            className="mt-6 h-12 w-full text-base"
+            onClick={checkout}
+            disabled={!summary.canCheckout || isCheckingOut}
+          >
             {isCheckingOut ? <Loader2 className="animate-spin" /> : <Lock />}
             {isCheckingOut ? "Redirecting to Stripe…" : "Checkout"}
           </Button>

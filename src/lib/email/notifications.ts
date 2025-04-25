@@ -12,11 +12,7 @@ import {
 
 async function loadOrder(orderId: string): Promise<(EmailOrder & { email: string }) | null> {
   const admin = createAdminClient();
-  const { data } = await admin
-    .from("orders")
-    .select("*, items:order_items(*)")
-    .eq("id", orderId)
-    .maybeSingle();
+  const { data } = await admin.from("orders").select("*, items:order_items(*)").eq("id", orderId).maybeSingle();
   if (!data) return null;
   return {
     id: data.id,

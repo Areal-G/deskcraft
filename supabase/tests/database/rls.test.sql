@@ -18,7 +18,7 @@ select is(
   'customer', 'new users get the customer role by default');
 
 -- An inactive product and one order per customer (created the server way).
-update public.products set is_active = false where slug = 'linea-slim-office-keyboard';
+update public.products set is_active = false where slug = 'clarity-4k-streaming-webcam';
 
 select public.create_order('11111111-1111-1111-1111-111111111111', 'alice@test.local',
   jsonb_build_array(jsonb_build_object('product_id', (select id from public.products where slug = 'glide-ergonomic-wireless-mouse'), 'quantity', 2)));
@@ -32,7 +32,7 @@ select is(
 
 select throws_ok(
   $$ select public.create_order('11111111-1111-1111-1111-111111111111', 'alice@test.local',
-       jsonb_build_array(jsonb_build_object('product_id', (select id from public.products where slug = 'prism-rgb-gaming-mouse'), 'quantity', 1))) $$,
+       jsonb_build_array(jsonb_build_object('product_id', (select id from public.products where slug = 'reference-studio-headphones'), 'quantity', 1))) $$,
   'P0001', null, 'create_order rejects out-of-stock products');
 
 select throws_ok(
@@ -48,7 +48,7 @@ set local role anon;
 set local request.jwt.claims = '{"role":"anon"}';
 
 select ok((select count(*) from public.products) > 0, 'anon can read active products');
-select is((select count(*)::int from public.products where slug = 'linea-slim-office-keyboard'), 0, 'anon cannot see inactive products');
+select is((select count(*)::int from public.products where slug = 'clarity-4k-streaming-webcam'), 0, 'anon cannot see inactive products');
 select throws_ok($$ select * from public.orders $$, '42501', null, 'anon has no access to orders');
 select throws_ok($$ select * from public.profiles $$, '42501', null, 'anon has no access to profiles');
 select throws_ok($$ select * from public.webhook_events $$, '42501', null, 'anon has no access to webhook_events');
@@ -85,7 +85,7 @@ select throws_ok($$ insert into public.orders (user_id, customer_email, subtotal
 select throws_ok($$ select public.create_order(auth.uid(), 'x@y.z', '[]'::jsonb) $$, '42501', null,
   'customer cannot call create_order');
 select throws_ok($$ select public.apply_checkout_event('evt_x', 'checkout.session.completed',
-                    (select id from public.orders limit 1), 'cs_x', '', 0, 'brl', 'paid') $$,
+                    (select id from public.orders limit 1), 'cs_x', '', 0, 'usd', 'paid') $$,
   '42501', null, 'customer cannot mark orders as paid');
 
 -- ---------------------------------------------------------------------------
@@ -96,12 +96,12 @@ set local request.jwt.claims = '{"sub":"33333333-3333-3333-3333-333333333333","r
 select is((select count(*)::int from public.orders
            where user_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')), 2,
   'admin can read every customer''s orders');
-select is((select count(*)::int from public.products where slug = 'linea-slim-office-keyboard'), 1, 'admin can see inactive products');
+select is((select count(*)::int from public.products where slug = 'clarity-4k-streaming-webcam'), 1, 'admin can see inactive products');
 select is((select full_name from public.profiles where id = '22222222-2222-2222-2222-222222222222'), 'Bob',
   'the customer''s update of another profile had no effect');
 select is((select count(*)::int from public.products where price_cents = 1), 0,
   'the customer''s price update had no effect');
-select lives_ok($$ update public.products set stock_quantity = 99 where slug = 'prism-rgb-gaming-mouse' $$,
+select lives_ok($$ update public.products set stock_quantity = 99 where slug = 'reference-studio-headphones' $$,
   'admin can adjust stock');
 select throws_ok(
   $$ update public.orders set status = 'shipped' where user_id = '11111111-1111-1111-1111-111111111111' $$,
@@ -114,11 +114,11 @@ reset role;
 select is(
   public.apply_checkout_event('evt_test_1', 'checkout.session.completed',
     (select id from public.orders where user_id = '11111111-1111-1111-1111-111111111111'),
-    'cs_test_1', 'pi_1', (select total_cents from public.orders where user_id = '11111111-1111-1111-1111-111111111111'), 'brl', 'paid')
+    'cs_test_1', 'pi_1', (select total_cents from public.orders where user_id = '11111111-1111-1111-1111-111111111111'), 'usd', 'paid')
   || '/' ||
   public.apply_checkout_event('evt_test_1', 'checkout.session.completed',
     (select id from public.orders where user_id = '11111111-1111-1111-1111-111111111111'),
-    'cs_test_1', 'pi_1', (select total_cents from public.orders where user_id = '11111111-1111-1111-1111-111111111111'), 'brl', 'paid'),
+    'cs_test_1', 'pi_1', (select total_cents from public.orders where user_id = '11111111-1111-1111-1111-111111111111'), 'usd', 'paid'),
   'processed/duplicate',
   'the same Stripe event is applied only once');
 

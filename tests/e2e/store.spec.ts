@@ -25,10 +25,10 @@ test.describe("public store", () => {
   test("product detail shows price and stock; out-of-stock cannot be added", async ({ page }) => {
     await page.goto("/products/arc75-wireless-mechanical-keyboard");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Arc75 Wireless Mechanical Keyboard");
-    await expect(page.getByTestId("product-price")).toContainText("899,00");
+    await expect(page.getByTestId("product-price")).toContainText("$149.00");
     await expect(page.getByRole("main").getByText("In stock").first()).toBeVisible();
 
-    await page.goto("/products/prism-rgb-gaming-mouse");
+    await page.goto("/products/reference-studio-headphones");
     await expect(page.getByRole("button", { name: "Out of stock" })).toBeDisabled();
   });
 
@@ -49,15 +49,15 @@ test.describe("public store", () => {
 
     await page.goto("/cart");
     await expect(page.getByTestId("cart-line")).toHaveCount(2);
-    // 199,00 + 2 × 329,00 = 857,00
-    await expect(page.getByTestId("cart-total")).toContainText("857,00");
+    // 49.00 + 2 × 59.00 = 167.00
+    await expect(page.getByTestId("cart-total")).toContainText("$167.00");
 
     await page.getByRole("button", { name: "Increase quantity" }).first().click();
-    await expect(page.getByTestId("cart-total")).toContainText("1.056,00");
+    await expect(page.getByTestId("cart-total")).toContainText("$216.00");
 
     await page.getByRole("button", { name: "Remove" }).first().click();
     await expect(page.getByTestId("cart-line")).toHaveCount(1);
-    await expect(page.getByTestId("cart-total")).toContainText("658,00");
+    await expect(page.getByTestId("cart-total")).toContainText("$118.00");
 
     await page.getByRole("button", { name: "Clear cart" }).click();
     await expect(page.getByText("Your cart is empty")).toBeVisible();
@@ -76,6 +76,6 @@ test.describe("public store", () => {
     await page.goto("/cart");
     // Quantity is clamped to the per-item limit and the price comes from the server.
     await expect(page.getByTestId("quantity-value").first()).toHaveText("10");
-    await expect(page.getByTestId("cart-total")).toContainText("1.990,00");
+    await expect(page.getByTestId("cart-total")).toContainText("$490.00");
   });
 });

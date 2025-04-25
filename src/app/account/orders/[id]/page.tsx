@@ -21,14 +21,17 @@ export default async function OrderDetailPage({ params }: PageProps<"/account/or
 
   return (
     <div className="space-y-6">
-      <Link href="/account/orders" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href="/account/orders"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ChevronLeft className="size-4" /> All orders
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Order {formatOrderNumber(order.order_number)}</h2>
           <p className="text-sm text-muted-foreground">
-            Placed {new Date(order.created_at).toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" })}
+            Placed {new Date(order.created_at).toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" })}
           </p>
         </div>
         <OrderStatusBadges status={order.status} paymentStatus={order.payment_status} />

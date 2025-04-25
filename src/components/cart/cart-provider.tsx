@@ -1,14 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
-import {
-  addLine,
-  countItems,
-  normalizeLines,
-  removeLine,
-  setLineQuantity,
-  type CartLine,
-} from "@/lib/cart/cart";
+import { addLine, countItems, normalizeLines, removeLine, setLineQuantity, type CartLine } from "@/lib/cart/cart";
 
 const STORAGE_KEY = "deskcraft.cart.v1";
 const EMPTY: CartLine[] = [];

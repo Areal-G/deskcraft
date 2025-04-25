@@ -1,11 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  ORDER_STATUS_LABEL,
-  PAYMENT_STATUS_LABEL,
-  type OrderStatus,
-  type PaymentStatus,
-} from "@/lib/orders/status";
+import { ORDER_STATUS_LABEL, PAYMENT_STATUS_LABEL, type OrderStatus, type PaymentStatus } from "@/lib/orders/status";
 
 const ORDER_TONE: Record<OrderStatus, string> = {
   pending: "bg-warning/15 text-amber-800 border-warning/30",

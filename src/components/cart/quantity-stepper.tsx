@@ -30,13 +30,29 @@ export function QuantityStepper({
       role="group"
       aria-label={label}
     >
-      <button type="button" className={btn} onClick={() => onChange(value - 1)} disabled={disabled || value <= min} aria-label="Decrease quantity">
+      <button
+        type="button"
+        className={btn}
+        onClick={() => onChange(value - 1)}
+        disabled={disabled || value <= min}
+        aria-label="Decrease quantity"
+      >
         <Minus className="size-4" />
       </button>
-      <span className={cn("text-center font-medium tabular-nums", size === "lg" ? "w-8" : "w-6 text-sm")} aria-live="polite" data-testid="quantity-value">
+      <span
+        className={cn("text-center font-medium tabular-nums", size === "lg" ? "w-8" : "w-6 text-sm")}
+        aria-live="polite"
+        data-testid="quantity-value"
+      >
         {value}
       </span>
-      <button type="button" className={btn} onClick={() => onChange(value + 1)} disabled={disabled || value >= max} aria-label="Increase quantity">
+      <button
+        type="button"
+        className={btn}
+        onClick={() => onChange(value + 1)}
+        disabled={disabled || value >= max}
+        aria-label="Increase quantity"
+      >
         <Plus className="size-4" />
       </button>
     </div>

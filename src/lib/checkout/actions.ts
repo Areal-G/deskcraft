@@ -31,7 +31,11 @@ function mapCreateOrderError(message: string): CheckoutResult {
     };
   }
   if (message.includes("PRODUCT_UNAVAILABLE")) {
-    return { ok: false, code: "STOCK", error: "A product in your cart is no longer available. Please review your cart." };
+    return {
+      ok: false,
+      code: "STOCK",
+      error: "A product in your cart is no longer available. Please review your cart.",
+    };
   }
   if (message.includes("TOO_MANY_PENDING_ORDERS")) {
     return {

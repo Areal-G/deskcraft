@@ -94,9 +94,7 @@ export function normalizeLines(input: unknown): CartLine[] {
     if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity < 1) continue;
     merged.set(productId, Math.min(MAX_QUANTITY_PER_ITEM, (merged.get(productId) ?? 0) + quantity));
   }
-  return [...merged.entries()]
-    .slice(0, MAX_CART_LINES)
-    .map(([productId, quantity]) => ({ productId, quantity }));
+  return [...merged.entries()].slice(0, MAX_CART_LINES).map(([productId, quantity]) => ({ productId, quantity }));
 }
 
 export function countItems(lines: CartLine[]): number {

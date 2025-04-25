@@ -38,7 +38,14 @@ export function Field({
   return (
     <div className={cn("space-y-2", className)}>
       <Label htmlFor={id}>{label}</Label>
-      <Input id={id} name={name} aria-invalid={error?.length ? true : undefined} aria-describedby={describedBy} className="h-11" {...props} />
+      <Input
+        id={id}
+        name={name}
+        aria-invalid={error?.length ? true : undefined}
+        aria-describedby={describedBy}
+        className="h-11"
+        {...props}
+      />
       {error?.length ? (
         <p id={`${id}-error`} className="text-sm text-destructive">
           {error[0]}

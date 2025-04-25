@@ -24,14 +24,14 @@ describe("order lifecycle", () => {
   });
 
   it("formats order numbers", () => {
-    expect(formatOrderNumber(1001)).toBe("VL-1001");
+    expect(formatOrderNumber(1001)).toBe("DC-1001");
   });
 });
 
 describe("money", () => {
-  it("formats centavos as BRL", () => {
-    expect(formatPrice(89900).replace(/\s/g, " ")).toBe("R$ 899,00");
-    expect(formatPrice(129999).replace(/\s/g, " ")).toBe("R$ 1.299,99");
+  it("formats cents as USD", () => {
+    expect(formatPrice(89900).replace(/\s/g, " ")).toBe("$899.00");
+    expect(formatPrice(129999).replace(/\s/g, " ")).toBe("$1,299.99");
   });
 });
 
@@ -42,7 +42,9 @@ describe("email templates", () => {
     status: "paid",
     paymentStatus: "paid",
     totalCents: 179800,
-    items: [{ productName: '<img src=x onerror="alert(1)">', quantity: 2, unitPriceCents: 89900, subtotalCents: 179800 }],
+    items: [
+      { productName: '<img src=x onerror="alert(1)">', quantity: 2, unitPriceCents: 89900, subtotalCents: 179800 },
+    ],
   };
 
   it("escapes untrusted text", () => {
@@ -51,7 +53,7 @@ describe("email templates", () => {
 
   it("includes order number, products, total and payment status without injecting HTML", () => {
     const email = orderConfirmationEmail(order, "https://shop.test");
-    expect(email.subject).toContain("VL-1042");
+    expect(email.subject).toContain("DC-1042");
     expect(email.html).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
     expect(email.html).not.toContain("<img src=x");
     expect(email.text).toContain("Payment: Paid");

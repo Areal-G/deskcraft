@@ -28,7 +28,11 @@ export default async function AdminDashboardPage() {
             </>
           );
           return c.href ? (
-            <Link key={c.label} href={c.href} className="rounded-2xl border bg-card p-5 transition-colors hover:border-foreground/20">
+            <Link
+              key={c.label}
+              href={c.href}
+              className="rounded-2xl border bg-card p-5 transition-colors hover:border-foreground/20"
+            >
               {body}
             </Link>
           ) : (
@@ -43,7 +47,9 @@ export default async function AdminDashboardPage() {
         <section className="rounded-2xl border bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold">Recent orders</h2>
-            <Link href="/admin/orders" className="text-sm font-medium hover:underline">View all</Link>
+            <Link href="/admin/orders" className="text-sm font-medium hover:underline">
+              View all
+            </Link>
           </div>
           {stats.recentOrders.length === 0 ? (
             <p className="text-sm text-muted-foreground">No orders yet.</p>
@@ -52,7 +58,9 @@ export default async function AdminDashboardPage() {
               {stats.recentOrders.map((o) => (
                 <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div>
-                    <Link href={`/admin/orders/${o.id}`} className="font-medium hover:underline">{formatOrderNumber(o.order_number)}</Link>
+                    <Link href={`/admin/orders/${o.id}`} className="font-medium hover:underline">
+                      {formatOrderNumber(o.order_number)}
+                    </Link>
                     <p className="text-xs text-muted-foreground">{o.customer_email}</p>
                   </div>
                   <OrderStatusBadges status={o.status} paymentStatus={o.payment_status} />
@@ -71,8 +79,12 @@ export default async function AdminDashboardPage() {
             <ul className="space-y-3">
               {stats.lowStock.map((p) => (
                 <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
-                  <Link href={`/admin/products/${p.id}`} className="truncate hover:underline">{p.name}</Link>
-                  <span className={p.stock_quantity === 0 ? "font-medium text-destructive" : "font-medium text-amber-700"}>
+                  <Link href={`/admin/products/${p.id}`} className="truncate hover:underline">
+                    {p.name}
+                  </Link>
+                  <span
+                    className={p.stock_quantity === 0 ? "font-medium text-destructive" : "font-medium text-amber-700"}
+                  >
                     {p.stock_quantity === 0 ? "Out" : p.stock_quantity}
                   </span>
                 </li>

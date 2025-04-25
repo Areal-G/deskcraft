@@ -10,7 +10,12 @@ export function OrderItemsList({ order }: { order: OrderWithItems }) {
       <ul className="divide-y">
         {order.items.map((item) => (
           <li key={item.id} className="flex items-center gap-4 py-4">
-            <ProductImage src={item.product_image_url} alt={item.product_name} sizes="64px" className="size-16 shrink-0 rounded-lg" />
+            <ProductImage
+              src={item.product_image_url}
+              alt={item.product_name}
+              sizes="64px"
+              className="size-16 shrink-0 rounded-lg"
+            />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{item.product_name}</p>
               <p className="text-sm text-muted-foreground tabular-nums">

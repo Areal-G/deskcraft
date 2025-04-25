@@ -12,6 +12,13 @@ export type CheckoutOrder = {
 /** Stripe requires Checkout Sessions to live at least 30 minutes. */
 export const CHECKOUT_SESSION_TTL_SECONDS = 30 * 60;
 
+/** Stripe needs a public https URL, so bundled /products/ photos are resolved against the site URL. */
+function productImage(url: string | null, baseUrl: string): string | null {
+  if (!url) return null;
+  const absolute = new URL(url, baseUrl).toString();
+  return absolute.startsWith("https://") ? absolute : null;
+}
+
 /**
  * Builds Checkout Session parameters from a persisted order. Line items are
  * derived from the order's server-side price snapshots — nothing here comes
@@ -35,20 +42,23 @@ export function buildCheckoutSessionParams(
     payment_intent_data: {
       metadata: { order_id: order.id, order_number: String(order.orderNumber) },
     },
-    line_items: order.items.map((item) => ({
-      quantity: item.quantity,
-      price_data: {
-        currency: order.currency,
-        unit_amount: item.unitPriceCents,
-        product_data: {
-          name: item.productName,
-          ...(item.productImageUrl ? { images: [item.productImageUrl] } : {}),
+    line_items: order.items.map((item) => {
+      const image = productImage(item.productImageUrl, baseUrl);
+      return {
+        quantity: item.quantity,
+        price_data: {
+          currency: order.currency,
+          unit_amount: item.unitPriceCents,
+          product_data: {
+            name: item.productName,
+            ...(image ? { images: [image] } : {}),
+          },
         },
-      },
-    })),
+      };
+    }),
     success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/cart?checkout=cancelled`,
     expires_at: Math.floor(now.getTime() / 1000) + CHECKOUT_SESSION_TTL_SECONDS,
-    locale: "pt-BR",
+    locale: "en",
   };
 }

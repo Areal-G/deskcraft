@@ -95,7 +95,7 @@ create table public.categories (
 );
 
 -- ---------------------------------------------------------------------------
--- products — prices are stored as integer minor units (centavos)
+-- products — prices are stored as integer minor units (cents)
 -- ---------------------------------------------------------------------------
 create table public.products (
   id uuid primary key default gen_random_uuid(),
@@ -104,8 +104,8 @@ create table public.products (
   slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   description text not null default '' check (char_length(description) <= 4000),
   price_cents integer not null check (price_cents > 0 and price_cents <= 10000000),
-  currency text not null default 'brl' check (currency = 'brl'),
-  image_url text check (image_url is null or image_url ~ '^https://'),
+  currency text not null default 'usd' check (currency = 'usd'),
+  image_url text check (image_url is null or image_url ~ '^(https://|/products/[a-z0-9-]+\.(jpg|png|webp)$)'),
   stock_quantity integer not null default 0 check (stock_quantity >= 0),
   is_active boolean not null default true,
   is_featured boolean not null default false,
@@ -132,7 +132,7 @@ create table public.orders (
   payment_status public.payment_status not null default 'pending',
   subtotal_cents integer not null check (subtotal_cents >= 0),
   total_cents integer not null check (total_cents >= 0),
-  currency text not null default 'brl' check (currency = 'brl'),
+  currency text not null default 'usd' check (currency = 'usd'),
   stripe_checkout_session_id text unique,
   stripe_payment_intent_id text,
   paid_at timestamptz,

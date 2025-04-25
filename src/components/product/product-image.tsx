@@ -19,7 +19,9 @@ export function ProductImage({
     <div className={cn("relative aspect-square overflow-hidden rounded-xl bg-muted", className)}>
       {src ? (
         <Image
-          src={`${src}${src.includes("?") ? "&" : "?"}auto=format&fit=crop&w=1200&q=80`}
+          src={
+            src.startsWith("https://") ? `${src}${src.includes("?") ? "&" : "?"}auto=format&fit=crop&w=1200&q=80` : src
+          }
           alt={alt}
           fill
           sizes={sizes}

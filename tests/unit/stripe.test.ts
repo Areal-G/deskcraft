@@ -1,7 +1,12 @@
 import Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
 import { buildCheckoutSessionParams, CHECKOUT_SESSION_TTL_SECONDS, type CheckoutOrder } from "@/lib/stripe/checkout";
-import { processStripeEvent, toCheckoutCommand, type ApplyResult, type CheckoutEventCommand } from "@/lib/stripe/webhook";
+import {
+  processStripeEvent,
+  toCheckoutCommand,
+  type ApplyResult,
+  type CheckoutEventCommand,
+} from "@/lib/stripe/webhook";
 
 const ORDER_ID = "6f1c2b8e-3a4d-4e5f-8a9b-0c1d2e3f4a5b";
 
@@ -9,10 +14,15 @@ const order: CheckoutOrder = {
   id: ORDER_ID,
   orderNumber: 1001,
   customerEmail: "ana@example.com",
-  currency: "brl",
+  currency: "usd",
   totalCents: 2 * 89900 + 19900,
   items: [
-    { productName: "Arc75", productImageUrl: "https://images.unsplash.com/photo-1", unitPriceCents: 89900, quantity: 2 },
+    {
+      productName: "Arc75",
+      productImageUrl: "https://images.unsplash.com/photo-1",
+      unitPriceCents: 89900,
+      quantity: 2,
+    },
     { productName: "Glide", productImageUrl: null, unitPriceCents: 19900, quantity: 1 },
   ],
 };
@@ -21,17 +31,17 @@ describe("buildCheckoutSessionParams", () => {
   const now = new Date("2026-10-03T12:00:00Z");
   const params = buildCheckoutSessionParams(order, "https://shop.test", now);
 
-  it("uses server-side price snapshots in BRL", () => {
+  it("uses server-side price snapshots in USD", () => {
     expect(params.line_items).toEqual([
       {
         quantity: 2,
         price_data: {
-          currency: "brl",
+          currency: "usd",
           unit_amount: 89900,
           product_data: { name: "Arc75", images: ["https://images.unsplash.com/photo-1"] },
         },
       },
-      { quantity: 1, price_data: { currency: "brl", unit_amount: 19900, product_data: { name: "Glide" } } },
+      { quantity: 1, price_data: { currency: "usd", unit_amount: 19900, product_data: { name: "Glide" } } },
     ]);
   });
 
@@ -54,11 +64,7 @@ describe("buildCheckoutSessionParams", () => {
   });
 });
 
-function checkoutEvent(
-  type: string,
-  session: Partial<Stripe.Checkout.Session> = {},
-  id = "evt_123",
-): Stripe.Event {
+function checkoutEvent(type: string, session: Partial<Stripe.Checkout.Session> = {}, id = "evt_123"): Stripe.Event {
   return {
     id,
     object: "event",
@@ -70,7 +76,7 @@ function checkoutEvent(
         payment_status: "paid",
         payment_intent: "pi_123",
         amount_total: order.totalCents,
-        currency: "brl",
+        currency: "usd",
         metadata: { order_id: ORDER_ID },
         client_reference_id: ORDER_ID,
         ...session,
@@ -88,7 +94,7 @@ describe("toCheckoutCommand", () => {
       sessionId: "cs_test_abc",
       paymentIntentId: "pi_123",
       amountTotal: order.totalCents,
-      currency: "brl",
+      currency: "usd",
       outcome: "paid",
     });
   });
@@ -133,7 +139,9 @@ describe("processStripeEvent idempotency", () => {
     expect(await processStripeEvent(completed, deps)).toBe("processed");
     expect(await processStripeEvent(completed, deps)).toBe("duplicate"); // Stripe retry
     // A different event for the same, already-paid session.
-    expect(await processStripeEvent(checkoutEvent("checkout.session.async_payment_succeeded", {}, "evt_2"), deps)).toBe("ignored");
+    expect(await processStripeEvent(checkoutEvent("checkout.session.async_payment_succeeded", {}, "evt_2"), deps)).toBe(
+      "ignored",
+    );
 
     expect(onOrderPaid).toHaveBeenCalledTimes(1);
     expect(onOrderPaid).toHaveBeenCalledWith(ORDER_ID);

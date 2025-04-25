@@ -38,11 +38,7 @@ export async function listProducts(query: CatalogQuery = {}): Promise<ProductWit
   let request = supabase.from("products").select(PRODUCT_SELECT).eq("is_active", true);
 
   if (query.category) {
-    const { data: category } = await supabase
-      .from("categories")
-      .select("id")
-      .eq("slug", query.category)
-      .maybeSingle();
+    const { data: category } = await supabase.from("categories").select("id").eq("slug", query.category).maybeSingle();
     if (!category) return [];
     request = request.eq("category_id", category.id);
   }
@@ -123,11 +119,7 @@ export function toCartProduct(p: Product): CartProduct {
 export async function getCartProducts(ids: string[]): Promise<CartProduct[]> {
   if (ids.length === 0) return [];
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .in("id", ids)
-    .eq("is_active", true);
+  const { data, error } = await supabase.from("products").select("*").in("id", ids).eq("is_active", true);
   if (error) throw new Error(`Failed to load cart products: ${error.message}`);
   return data.map(toCartProduct);
 }

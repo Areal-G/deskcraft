@@ -4,7 +4,13 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 /** Re-renders the server page every few seconds while the webhook is pending. */
-export function PaymentStatusPoller({ intervalMs = 3000, maxAttempts = 40 }: { intervalMs?: number; maxAttempts?: number }) {
+export function PaymentStatusPoller({
+  intervalMs = 3000,
+  maxAttempts = 40,
+}: {
+  intervalMs?: number;
+  maxAttempts?: number;
+}) {
   const router = useRouter();
   useEffect(() => {
     let attempts = 0;

@@ -140,7 +140,7 @@ test.describe("authentication & authorization", () => {
     await page.goto("/account/orders");
     await expect(page.getByTestId("orders-list").getByRole("link")).toHaveCount(1);
     await page.goto(`/account/orders/${alicesOrder}`);
-    await expect(page.getByRole("heading", { name: /Order VL-/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Order DC-/ })).toBeVisible();
   });
 
   test("a customer cannot access the admin area", async ({ page }) => {

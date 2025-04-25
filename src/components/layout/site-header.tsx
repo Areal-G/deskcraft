@@ -19,7 +19,10 @@ export async function SiteHeader() {
         <MobileNav nav={nav} signedIn={Boolean(user)} admin={isAdmin(user)} />
         <Logo />
         <nav aria-label="Categories" className="ml-4 hidden items-center gap-1 xl:flex">
-          <Link href="/products" className="rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground">
+          <Link
+            href="/products"
+            className="rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:text-foreground"
+          >
             All products
           </Link>
           {nav.map((item) => (

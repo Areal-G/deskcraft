@@ -4,9 +4,7 @@ import { serverEnv } from "@/lib/env";
 import type { EmailContent } from "@/lib/email/templates";
 
 export type SendResult =
-  | { status: "sent"; id: string }
-  | { status: "skipped"; reason: string }
-  | { status: "failed"; error: string };
+  { status: "sent"; id: string } | { status: "skipped"; reason: string } | { status: "failed"; error: string };
 
 let resend: Resend | null = null;
 

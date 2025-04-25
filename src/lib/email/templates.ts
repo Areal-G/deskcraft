@@ -42,7 +42,7 @@ function layout(title: string, body: string): string {
             ${body}
           </td></tr>
           <tr><td style="padding:20px 28px;border-top:1px solid #e4e4e7;font-size:12px;color:#71717a;">
-            ${STORE_NAME} is a portfolio demo store. No real products are sold or shipped.
+            You are receiving this email because you have an account with ${STORE_NAME}.
           </td></tr>
         </table>
       </td></tr>

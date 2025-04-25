@@ -34,7 +34,7 @@ test.describe("admin", () => {
     await page.getByLabel("Name").fill("E2E Test Product");
     await page.getByLabel("Slug").fill(slug);
     await page.getByLabel("Category").selectOption({ label: "Accessories" });
-    await page.getByLabel("Price (R$)").fill("123,45");
+    await page.getByLabel("Price ($)").fill("123.45");
     await page.getByLabel("Stock quantity").fill("7");
     await page.getByRole("button", { name: "Create product" }).click();
     await expect(page.getByText("Product saved.")).toBeVisible();
@@ -60,10 +60,10 @@ test.describe("admin", () => {
     await signIn(page, adminUser, "/admin");
     await page.goto("/admin/products/new");
     await page.getByLabel("Name").fill("X");
-    await page.getByLabel("Price (R$)").fill("abc");
+    await page.getByLabel("Price ($)").fill("abc");
     await page.getByRole("button", { name: "Create product" }).click();
     await expect(page.getByText("Name is too short.")).toBeVisible();
-    await expect(page.getByText("Enter a valid price, e.g. 899,90.")).toBeVisible();
+    await expect(page.getByText("Enter a valid price, e.g. 149.90.")).toBeVisible();
   });
 
   test("admin can only fulfil paid orders and moves them through the lifecycle", async ({ page }) => {
