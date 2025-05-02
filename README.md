@@ -1,119 +1,220 @@
 # Deskcraft
 
-Desk-setup store with accounts, Stripe Checkout, order tracking and an admin area. Built on Next.js 16.3, React 19.2, TypeScript, Supabase and Stripe. Pricing, stock, payment state and access are enforced in PostgreSQL, not only in the UI.
+A full-stack desk-setup store: accounts, Stripe Checkout, order tracking and an admin area. Pricing, stock, payment state and access are enforced in PostgreSQL, so they hold no matter which code path touches the data.
+
+## About
+
+Customers browse a catalog, build a cart, create an account and pay through Stripe Checkout. Payment is confirmed asynchronously by a signature-verified Stripe webhook, which is the only thing that can mark an order as paid. Admins manage products, stock and fulfilment from a protected admin area.
+
+Most of the work went into the parts of a store that are easy to get wrong:
+
+* **Access.** Row Level Security on every table decides who can read or change what. The UI is not the only guard.
+* **Price.** What a customer pays always comes from the database. A price sent from the browser is stripped.
+* **Payment.** An order is paid only when a verified webhook says so, and each event is processed exactly once.
+* **Stock.** It can't be oversold, and abandoned checkouts give it back.
+
+What the store has:
+
+* 12 products in 6 categories, with search, category filters, sorting and live stock status
+* a cart in `localStorage` that keeps only product ids and quantities, capped by stock
+* sign up with email confirmation, sign in, password recovery, profile and order history
+* order tracking with a lifecycle timeline, limited to the customer's own orders
+* an admin dashboard with revenue from paid orders, the fulfilment queue, orders awaiting payment and low stock
+* product create/edit, an active toggle and inline stock in admin
+* transactional email through Resend: confirmation, payment failed, status updates, welcome
+
+Hardening on top of that: safe same-origin redirects for `?next=`, HTML-escaped email templates, an allowlist for product image URLs, and security headers (`X-Frame-Options`, HSTS, `Referrer-Policy`, `Permissions-Policy`).
 
 All products, prices and accounts are fictional. Prices are in USD.
 
-## Setup
+## Accounts
 
-1. Install Node.js 20.9+ and Docker (for local Supabase). A Stripe test account and the Stripe CLI are optional.
-2. `npm install`
-3. `npx supabase start` (API on 56521, Studio on 56523, auth email inbox on 56524)
-4. `npm run db:reset` to apply the migrations and seed the catalog
-5. `cp .env.example .env.local` and fill it in (see Environment below)
-6. `npm run seed:users` to create the demo admin and customer
-7. `docker exec -i supabase_db_deskcraft psql -U postgres -d postgres < scripts/seed-demo-orders.sql` for the demo order history
-8. `npx next dev -p 4107` and open http://localhost:4107
+`npm run seed:users` creates two demo accounts:
 
-## What's here
+| Role | Email | Password | Can do |
+| --- | --- | --- | --- |
+| Customer | `customer@deskcraft.test` | `DEMO_CUSTOMER_PASSWORD` in `.env.example` | Shop, pay, see own orders |
+| Admin | `admin@deskcraft.test` | `DEMO_ADMIN_PASSWORD` in `.env.example` | Manage products, stock and order status |
 
-* catalog of 12 products in 6 categories, with search, category filters and sorting
-* product pages with live stock status; sold-out products can't go in the cart
-* cart in `localStorage`, capped by stock and a per-item maximum
-* accounts: sign up with email confirmation, sign in, sign out, password reset
-* order history and order tracking with a lifecycle timeline
-* Stripe Checkout with a signature-verified webhook
-* admin dashboard, product editing, inline stock, order status changes
-* transactional emails through Resend (logged to the console without a key)
+The customer gets six demo orders, one in each lifecycle state, from `scripts/seed-demo-orders.sql`.
 
-## Database
+In admin, orders can be filtered by status and moved along the lifecycle. The customer gets an email on each change.
 
-Everything important is in Postgres. Tables:
+Admin access is checked in three places: page guards, `assertAdmin()` in every admin Server Action, and RLS. Admins can update only an order's `status` column, never its money fields.
 
-* **categories**
-  * 6 rows from `supabase/seed.sql`
-  * used by the catalog filters and the home page
-* **products**
-  * `id`
-  * `slug`
-  * name
-  * price
-  * category
-  * image URL (checked against an allowlist)
-  * `stock_quantity`
-  * active flag (admins can toggle it)
-* **orders**
-  * owner (the customer)
-  * `status`
-  * `payment_status`
-  * total (currently equal to the subtotal, no tax or shipping)
-  * confirmation email flag (claimed with a conditional update so it's sent once)
-* **order items**
-  * `product_id`
-  * quantity
-  * product name snapshot
-  * unit price snapshot
-* **profiles**
-  * one per user
-  * role (`admin` or not)
-* **webhook event ledger**
-  * Stripe event id
-  * written in the same transaction as the order update
+## Checkout flow
 
-Functions and triggers:
+```
+cart → startCheckout → create_order() → Stripe Checkout → webhook → paid
+```
 
-* `create_order()` — one transaction, locks product rows in a fixed order, checks stock, decrements it, inserts the order with price snapshots, max 3 pending orders per hour per customer
-* `apply_checkout_event()` — records the event id, checks amount and currency, moves the order `pending → paid` or cancels it
-* `guard_order_status_change()` — `before update` trigger that rejects illegal transitions
-* restock trigger — puts stock back when an order is cancelled
+1. `startCheckout` requires a signed-in user and validates the cart with Zod. Unknown fields, such as a price, are dropped.
+2. `create_order()` runs as one transaction. It caps a customer at 3 pending orders per hour, locks product rows in a fixed order, checks each one is active and in stock, decrements stock and stores the order with price snapshots.
+3. A Checkout Session is built from the stored order, with a 30-minute expiry and a per-order idempotency key. If anything fails, the session is expired and the stock released.
+4. The webhook verifies the signature on the raw body and calls `apply_checkout_event()`. That records the event id, checks amount and currency, and moves the order `pending → paid`, or cancels and restocks on failure or expiry. A duplicate event does nothing.
+5. On a fresh `paid` transition the confirmation email is claimed with a conditional update, so it goes out at most once.
 
-RLS is on every table.
+The success page only shows what the webhook wrote. Landing on it confirms nothing.
 
-## Order statuses
+After payment, the lifecycle is enforced by a database trigger:
 
-An order is created as `pending`. When the webhook confirms payment it becomes `paid`. An admin can then move it to `processing`, then `shipped`, then `delivered`. It can be `cancelled` while it is `pending`, `paid` or `processing`. It can't be cancelled after `shipped`. Cancelling gives the stock back.
+```
+pending → paid → processing → shipped → delivered
+```
 
-## Order lifecycle
+`cancelled` is allowed before shipping, and cancelling puts the stock back. Any other transition is rejected, whoever runs the query. The guard is a `before update` trigger:
 
-* `pending` — order created, stock reserved, waiting for Stripe
-* `paid` — webhook confirmed the payment
-* `processing` — admin is preparing it
-* `shipped` — on its way, can no longer be cancelled
-* `delivered` — done
-* `cancelled` — allowed before shipping; stock is restored
+```sql
+create or replace function public.guard_order_status_change()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.status is not distinct from old.status then
+    return new;
+  end if;
 
-`paid`, `processing`, `shipped` and `delivered` all require `payment_status` to be `paid`, otherwise the trigger raises `ORDER_NOT_PAID`. Anything else raises `INVALID_STATUS_TRANSITION`.
+  if new.status in ('paid', 'processing', 'shipped', 'delivered') and new.payment_status <> 'paid' then
+    raise exception 'ORDER_NOT_PAID' using errcode = 'check_violation';
+  end if;
 
-## Stripe
+  if not (
+       (old.status = 'pending'    and new.status in ('paid', 'cancelled'))
+    or (old.status = 'paid'       and new.status in ('processing', 'shipped', 'cancelled'))
+    or (old.status = 'processing' and new.status in ('shipped', 'cancelled'))
+    or (old.status = 'shipped'    and new.status = 'delivered')
+  ) then
+    raise exception 'INVALID_STATUS_TRANSITION' using errcode = 'check_violation';
+  end if;
 
-Put a test-mode secret key in `STRIPE_SECRET_KEY`, then forward the four handled events:
+  return new;
+end;
+$$;
+```
+
+Orders keep snapshots of product name and unit price, so a later price change never alters a past order.
+
+Test card: `4242 4242 4242 4242`, any future expiry, any CVC.
+
+## Stack
+
+| Layer | Tech |
+| --- | --- |
+| App | Next.js 16.3 (App Router, Server Actions), React 19.2, TypeScript 5 |
+| UI | Tailwind CSS 4, shadcn/ui on Radix UI, lucide-react, sonner |
+| Data | Supabase Auth + PostgreSQL, `@supabase/ssr`, `@supabase/supabase-js` |
+| Payments | Stripe Checkout + webhooks |
+| Email | Resend |
+| Validation | Zod 4 |
+| Tests | Vitest, pgTAP, Playwright |
+
+There are two Supabase clients on purpose. Everything a user does, admins included, goes through the request-scoped client with the user's session, so RLS always applies. The service-role client is server only and is used for creating orders, applying webhook events and email bookkeeping.
+
+Layout:
+
+```
+src/
+  app/
+    api/webhooks/stripe/   webhook: signature check, idempotent processing
+    account/               profile, order history, order tracking
+    admin/                 dashboard, products, orders
+  lib/
+    auth/ admin/ checkout/ Server Actions and queries
+    cart/                  cart logic shared by client and server
+    stripe/                client, Checkout Session builder, webhook processor
+    email/                 Resend sender and templates
+    supabase/              server, service-role and proxy clients
+  proxy.ts                 session refresh and protected-route redirects
+supabase/
+  migrations/              schema, RLS, SQL functions and triggers
+  seed.sql                 6 categories and 12 products
+  tests/database/          pgTAP tests
+scripts/                   demo users and demo order history
+```
+
+## Local development
+
+You need Node.js 20.9+, npm and Docker. Stripe test mode and the Stripe CLI are optional.
+
+```bash
+git clone <repository-url> deskcraft
+cd deskcraft
+npm install
+```
+
+Start Supabase. The API runs on 56521, Studio on 56523 and the auth email inbox on 56524.
+
+```bash
+npx supabase start
+npm run db:reset
+```
+
+Fill in `.env.local` with the values from `npx supabase status`:
+
+```bash
+cp .env.example .env.local
+```
+
+Seed the demo accounts and their orders:
+
+```bash
+npm run seed:users
+docker exec -i supabase_db_deskcraft psql -U postgres -d postgres < scripts/seed-demo-orders.sql
+```
+
+Run on the port the auth redirects expect:
+
+```bash
+npx next dev -p 4107
+```
+
+Open http://localhost:4107.
+
+**Stripe.** Put a test-mode key in `STRIPE_SECRET_KEY`, then forward the handled events:
 
 ```bash
 stripe listen --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired --forward-to localhost:4107/api/webhooks/stripe
 ```
 
-Copy the `whsec_…` into `STRIPE_WEBHOOK_SECRET` and restart. Test card `4242 4242 4242 4242`.
+Copy the printed `whsec_…` into `STRIPE_WEBHOOK_SECRET` and restart the dev server. Without Stripe keys, everything except paying works.
 
-## Demo accounts
+Scripts:
 
-`customer@deskcraft.test` and `admin@deskcraft.test`, passwords from `.env.example`. The customer has six demo orders, one per state.
+| Script | Does |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` / `npm start` | Production build and server |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | Route types, then `tsc --noEmit` |
+| `npm run db:reset` | Rebuild the local database from migrations and seed |
+| `npm run db:types` | Regenerate `src/lib/types/database.ts` |
+| `npm run seed:users` | Create the demo admin and customer |
+| `npm run format` | Prettier |
 
 ## Environment
 
-You need `NEXT_PUBLIC_SITE_URL`, which is the base URL used for Stripe redirects and email links and is baked in at build time, and `NEXT_PUBLIC_SUPABASE_URL`, which is the Supabase API URL, and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, which is the public anon key and is safe because of RLS, and `SUPABASE_SERVICE_ROLE_KEY`, which is server only and bypasses RLS so it must never reach the browser. For checkout you need `STRIPE_SECRET_KEY` with a test-mode key, and for webhooks you need `STRIPE_WEBHOOK_SECRET`, which is either the endpoint signing secret or the one printed by `stripe listen`. `RESEND_API_KEY` is optional and without it emails are logged instead of sent, and `EMAIL_FROM` is the sender address where `onboarding@resend.dev` works for testing. Finally `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`, `DEMO_CUSTOMER_EMAIL` and `DEMO_CUSTOMER_PASSWORD` are only used locally by `npm run seed:users`.
+| Variable | Needed | Notes |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | yes | Base URL for Stripe redirects and email links |
+| `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase API URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Public anon key, protected by RLS |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | Server only, bypasses RLS |
+| `STRIPE_SECRET_KEY` | checkout | Test-mode secret key |
+| `STRIPE_WEBHOOK_SECRET` | webhooks | From the endpoint or `stripe listen` |
+| `RESEND_API_KEY` | no | Without it, emails are logged |
+| `EMAIL_FROM` | no | Sender address |
+
+`DEMO_*` variables are only used by `npm run seed:users`.
+
+`NEXT_PUBLIC_SITE_URL` is baked in at build time, so redeploy after changing any `NEXT_PUBLIC_*` value. In production, point the Stripe webhook endpoint at `https://<your-domain>/api/webhooks/stripe` for the four `checkout.session.*` events. Without `RESEND_API_KEY`, emails are only written to the server console.
 
 ## Tests
 
-* `npm test` — Vitest
-* `npm run test:db` — pgTAP
-* `npm run test:e2e` — Playwright
-* `npm run typecheck`, `npm run lint`
+| Command | What it covers |
+| --- | --- |
+| `npm test` | Vitest, 83 tests: cart maths, tampered carts, Zod schemas, webhook mapping and idempotency, signature checks, email escaping |
+| `npm run test:db` | pgTAP, 27 tests: RLS per role, no self-promotion to admin, stock and pending-order limits, no shipping unpaid orders |
+| `npm run test:e2e` | Playwright on desktop and mobile: catalog, cart, sign-up, protected routes, admin flows, a forged success page |
+| `npm run typecheck`, `npm run lint` | TypeScript and ESLint |
 
-Integration, database and E2E tests need the local Supabase stack running.
+Integration, database and E2E tests need the local Supabase stack. Playwright starts its own server on port 3000 by default (`E2E_PORT` overrides it), and auth email links follow `NEXT_PUBLIC_SITE_URL`.
 
-## TODO
-
-* shipping addresses, tax, shipping costs
-* refunds (`refunded` status exists, nothing sets it)
-* server-side cart
-* image uploads in admin
+The database tests are the important ones here: the rules live in Postgres, so they are tested in Postgres. One pgTAP test currently fails because it looks for a product slug that is no longer in the seed.
