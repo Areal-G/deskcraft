@@ -38,16 +38,17 @@ The project focuses on the parts of e-commerce that are easy to get wrong:
 
 All products, prices and accounts are fictional. Prices are in USD.
 
-## Try the demo
+## Demo branch
 
-Run it locally (see [Getting started](#getting-started)), then sign in with the demo accounts created by `npm run seed:users`:
+This branch is a self-contained portfolio demo. It runs without a database or external services: no Supabase, Stripe or Resend, and no environment variables are required. The full application lives on `main`.
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Customer | `customer@deskcraft.test` | see `DEMO_CUSTOMER_PASSWORD` in `.env.example` |
-| Admin | `admin@deskcraft.test` | see `DEMO_ADMIN_PASSWORD` in `.env.example` |
+- **Data** lives in memory: the sample catalog plus a demo customer with one order in each lifecycle state. It resets whenever the server restarts.
+- **Sign in** with the one-click **Demo customer** or **Demo admin** buttons on the sign-in page. Sign-up and password emails are disabled.
+- **Checkout** places the order and marks it paid immediately, then shows the confirmation page. Emails are only logged.
+- **Sessions** are a signed cookie that also remembers the orders and status changes made in that browser, so they survive serverless instances that do not share memory. Product edits are kept in memory only.
+- **Deploy** on Netlify with the included `netlify.toml` (Node 22, `npm run build`). Optionally set `DEMO_SESSION_SECRET` before building to sign cookies with your own secret.
 
-The customer comes with six demo orders, one in each lifecycle state, from `scripts/seed-demo-orders.sql`. With Stripe test keys configured, pay with card `4242 4242 4242 4242`, any future expiry and any CVC.
+The sections below describe the full application on `main`.
 
 ## Features
 

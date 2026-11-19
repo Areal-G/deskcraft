@@ -1,0 +1,8 @@
+# Netlify deploy of the self-contained demo (no database or external services).
+# Next.js runs through Netlify's Next.js runtime, which is set up automatically.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"

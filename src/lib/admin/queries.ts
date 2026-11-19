@@ -1,67 +1,47 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/session";
+import { byNewest, db, withItems } from "@/lib/demo/store";
 import type { OrderStatus } from "@/lib/orders/status";
 
 /*
- * Admin reads use the admin's own session. RLS (is_admin()) is what grants
- * access to every row — a customer calling these would only see their own data.
+ * Admin reads. Pages call requireAdminPage() first; getCurrentUser() here also
+ * replays the visitor's session into the in-memory store.
  */
 
 export async function getDashboardStats() {
-  const supabase = await createClient();
-  const [paid, pending, toFulfil, lowStock, recent] = await Promise.all([
-    supabase.from("orders").select("total_cents").eq("payment_status", "paid").neq("status", "cancelled"),
-    supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    supabase.from("orders").select("id", { count: "exact", head: true }).in("status", ["paid", "processing"]),
-    supabase
-      .from("products")
-      .select("id, name, slug, stock_quantity, is_active")
-      .lte("stock_quantity", 5)
-      .eq("is_active", true)
-      .order("stock_quantity"),
-    supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(6),
-  ]);
-
-  for (const r of [paid, pending, toFulfil, lowStock, recent]) {
-    if (r.error) throw new Error(`Failed to load dashboard: ${r.error.message}`);
-  }
+  await getCurrentUser();
+  const { orders, products } = db();
+  const paid = orders.filter((o) => o.payment_status === "paid" && o.status !== "cancelled");
 
   return {
-    revenueCents: (paid.data ?? []).reduce((sum, o) => sum + o.total_cents, 0),
-    paidOrders: paid.data?.length ?? 0,
-    pendingOrders: pending.count ?? 0,
-    toFulfil: toFulfil.count ?? 0,
-    lowStock: lowStock.data ?? [],
-    recentOrders: recent.data ?? [],
+    revenueCents: paid.reduce((sum, o) => sum + o.total_cents, 0),
+    paidOrders: paid.length,
+    pendingOrders: orders.filter((o) => o.status === "pending").length,
+    toFulfil: orders.filter((o) => o.status === "paid" || o.status === "processing").length,
+    lowStock: products
+      .filter((p) => p.stock_quantity <= 5 && p.is_active)
+      .sort((a, b) => a.stock_quantity - b.stock_quantity),
+    recentOrders: [...orders].sort(byNewest).slice(0, 6),
   };
 }
 
 export async function listAllProducts() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select("*, category:categories(name)")
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(`Failed to load products: ${error.message}`);
-  return data;
+  const { products, categories } = db();
+  return [...products].sort(byNewest).map((p) => ({
+    ...p,
+    category: categories.find((c) => c.id === p.category_id) ?? null,
+  }));
 }
 
 export async function getProductForEdit(id: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const supabase = await createClient();
-  const { data } = await supabase.from("products").select("*").eq("id", id).maybeSingle();
-  return data;
+  return db().products.find((p) => p.id === id) ?? null;
 }
 
 export async function listAllOrders(status?: OrderStatus) {
-  const supabase = await createClient();
-  let query = supabase
-    .from("orders")
-    .select("*, items:order_items(quantity)")
-    .order("created_at", { ascending: false })
-    .limit(100);
-  if (status) query = query.eq("status", status);
-  const { data, error } = await query;
-  if (error) throw new Error(`Failed to load orders: ${error.message}`);
-  return data;
+  await getCurrentUser();
+  return db()
+    .orders.filter((o) => !status || o.status === status)
+    .sort(byNewest)
+    .slice(0, 100)
+    .map(withItems);
 }

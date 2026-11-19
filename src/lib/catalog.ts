@@ -1,5 +1,5 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { byNewest, db, withCategory } from "@/lib/demo/store";
 import type { CartProduct } from "@/lib/cart/cart";
 import type { Database } from "@/lib/types/database";
 
@@ -13,9 +13,7 @@ export type CatalogQuery = {
   sort?: "newest" | "price-asc" | "price-desc" | "name";
 };
 
-const PRODUCT_SELECT = "*, category:categories(name, slug)";
-
-/** Keeps letters, digits, spaces and dashes so the term is safe inside a PostgREST filter. */
+/** Keeps letters, digits, spaces and dashes so the term is safe to match against. */
 export function sanitizeSearchTerm(q: string): string {
   return q
     .normalize("NFC")
@@ -25,82 +23,59 @@ export function sanitizeSearchTerm(q: string): string {
     .slice(0, 80);
 }
 
+const activeProducts = () => db().products.filter((p) => p.is_active);
+
 export async function getCategories(): Promise<Category[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("categories").select("*").order("sort_order");
-  if (error) throw new Error(`Failed to load categories: ${error.message}`);
-  return data;
+  return [...db().categories].sort((a, b) => a.sort_order - b.sort_order);
 }
 
-/** Active products only (RLS also hides inactive ones from non-admins). */
+/** Active products only. */
 export async function listProducts(query: CatalogQuery = {}): Promise<ProductWithCategory[]> {
-  const supabase = await createClient();
-  let request = supabase.from("products").select(PRODUCT_SELECT).eq("is_active", true);
+  let products = activeProducts();
 
   if (query.category) {
-    const { data: category } = await supabase.from("categories").select("id").eq("slug", query.category).maybeSingle();
+    const category = db().categories.find((c) => c.slug === query.category);
     if (!category) return [];
-    request = request.eq("category_id", category.id);
+    products = products.filter((p) => p.category_id === category.id);
   }
 
-  const term = query.q ? sanitizeSearchTerm(query.q) : "";
-  if (term) request = request.or(`name.ilike.%${term}%,description.ilike.%${term}%`);
+  const term = query.q ? sanitizeSearchTerm(query.q).toLowerCase() : "";
+  if (term) products = products.filter((p) => `${p.name} ${p.description}`.toLowerCase().includes(term));
 
-  switch (query.sort) {
-    case "price-asc":
-      request = request.order("price_cents", { ascending: true });
-      break;
-    case "price-desc":
-      request = request.order("price_cents", { ascending: false });
-      break;
-    case "name":
-      request = request.order("name");
-      break;
-    default:
-      request = request.order("created_at", { ascending: false }).order("name");
-  }
+  const sorted = [...products].sort((a, b) => {
+    switch (query.sort) {
+      case "price-asc":
+        return a.price_cents - b.price_cents;
+      case "price-desc":
+        return b.price_cents - a.price_cents;
+      case "name":
+        return a.name.localeCompare(b.name);
+      default:
+        return byNewest(a, b) || a.name.localeCompare(b.name);
+    }
+  });
 
-  const { data, error } = await request.limit(60);
-  if (error) throw new Error(`Failed to load products: ${error.message}`);
-  return data as ProductWithCategory[];
+  return sorted.slice(0, 60).map(withCategory);
 }
 
 export async function getFeaturedProducts(limit = 4): Promise<ProductWithCategory[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .eq("is_featured", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) throw new Error(`Failed to load featured products: ${error.message}`);
-  return data as ProductWithCategory[];
+  return activeProducts()
+    .filter((p) => p.is_featured)
+    .sort(byNewest)
+    .slice(0, limit)
+    .map(withCategory);
 }
 
 export async function getProductBySlug(slug: string): Promise<ProductWithCategory | null> {
-  if (!/^[a-z0-9-]{1,120}$/.test(slug)) return null;
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
-  if (error) throw new Error(`Failed to load product: ${error.message}`);
-  return data as ProductWithCategory | null;
+  const product = activeProducts().find((p) => p.slug === slug);
+  return product ? withCategory(product) : null;
 }
 
 export async function getRelatedProducts(product: Product, limit = 4): Promise<ProductWithCategory[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .eq("is_active", true)
-    .eq("category_id", product.category_id)
-    .neq("id", product.id)
-    .limit(limit);
-  return (data ?? []) as ProductWithCategory[];
+  return activeProducts()
+    .filter((p) => p.category_id === product.category_id && p.id !== product.id)
+    .slice(0, limit)
+    .map(withCategory);
 }
 
 export function toCartProduct(p: Product): CartProduct {
@@ -117,9 +92,7 @@ export function toCartProduct(p: Product): CartProduct {
 
 /** Authoritative product data for the given ids (inactive products are omitted). */
 export async function getCartProducts(ids: string[]): Promise<CartProduct[]> {
-  if (ids.length === 0) return [];
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("products").select("*").in("id", ids).eq("is_active", true);
-  if (error) throw new Error(`Failed to load cart products: ${error.message}`);
-  return data.map(toCartProduct);
+  return activeProducts()
+    .filter((p) => ids.includes(p.id))
+    .map(toCartProduct);
 }

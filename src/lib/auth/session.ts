@@ -1,7 +1,9 @@
 import "server-only";
 import { cache } from "react";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { DEMO_USERS } from "@/lib/demo/data";
+import { db } from "@/lib/demo/store";
+import { getDemoSession } from "@/lib/demo/session";
 import type { Database } from "@/lib/types/database";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -13,21 +15,17 @@ export type SessionUser = {
 };
 
 /**
- * Returns the authenticated user and their profile, or null. Uses getUser(),
- * which validates the session with Supabase Auth instead of trusting cookies.
- * Cached per request.
+ * Returns the signed-in demo user and their profile, or null. The role comes
+ * from the signed demo session cookie. Cached per request.
  */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  const { u: role } = await getDemoSession();
+  if (!role) return null;
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  const profile = db().profiles.find((p) => p.id === DEMO_USERS[role].id);
   if (!profile) return null;
 
-  return { id: user.id, email: user.email ?? profile.email, profile };
+  return { id: profile.id, email: profile.email, profile };
 });
 
 export async function requireUser(nextPath = "/account"): Promise<SessionUser> {

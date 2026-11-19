@@ -3,6 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthCard } from "@/components/auth/auth-card";
 import { SignInForm } from "@/components/auth/auth-forms";
+import { Button } from "@/components/ui/button";
+import { demoSignIn } from "@/lib/auth/actions";
 import { getCurrentUser } from "@/lib/auth/session";
 import { safeNextPath } from "@/lib/security/redirect";
 
@@ -37,6 +39,18 @@ export default async function SignInPage({ searchParams }: PageProps<"/sign-in">
         </p>
       )}
       <SignInForm next={next} />
+      <form action={demoSignIn} className="mt-6 space-y-3 border-t pt-6">
+        <p className="text-center text-sm text-muted-foreground">Exploring the demo? Sign in with one click.</p>
+        <input type="hidden" name="next" value={params.next ? next : ""} />
+        <div className="grid grid-cols-2 gap-3">
+          <Button type="submit" name="role" value="customer" variant="outline">
+            Demo customer
+          </Button>
+          <Button type="submit" name="role" value="admin" variant="outline">
+            Demo admin
+          </Button>
+        </div>
+      </form>
     </AuthCard>
   );
 }

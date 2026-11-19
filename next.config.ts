@@ -9,6 +9,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Baked in at build time so serverless functions get it without runtime env vars.
+  // The default is public: demo sessions only protect demo data.
+  env: {
+    DEMO_SESSION_SECRET: process.env.DEMO_SESSION_SECRET || "deskcraft-demo-session",
+  },
   poweredByHeader: false,
   images: {
     remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com", pathname: "/**" }],

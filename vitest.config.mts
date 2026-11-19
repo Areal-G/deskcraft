@@ -1,8 +1,7 @@
 import { fileURLToPath } from "node:url";
-import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -12,9 +11,7 @@ export default defineConfig(({ mode }) => ({
   },
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],
-    // Integration tests read local Supabase credentials from .env.local.
-    env: loadEnv(mode, process.cwd(), ""),
+    include: ["tests/unit/**/*.test.ts"],
     fileParallelism: false,
   },
-}));
+});

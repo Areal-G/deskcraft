@@ -211,7 +211,7 @@ export function CartView({ signedIn }: { signedIn: boolean }) {
             disabled={!summary.canCheckout || isCheckingOut}
           >
             {isCheckingOut ? <Loader2 className="animate-spin" /> : <Lock />}
-            {isCheckingOut ? "Redirecting to Stripe…" : "Checkout"}
+            {isCheckingOut ? "Placing order…" : "Checkout"}
           </Button>
         ) : (
           <Button asChild size="lg" className="mt-6 h-12 w-full text-base">

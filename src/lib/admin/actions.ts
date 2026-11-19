@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assertAdmin, ForbiddenError } from "@/lib/auth/session";
-import { createClient } from "@/lib/supabase/server";
+import { changeOrderStatus, db } from "@/lib/demo/store";
+import { rememberStatus, updateDemoSession } from "@/lib/demo/session";
 import { sendOrderStatusUpdate } from "@/lib/email/notifications";
-import { GENERIC_ERROR, type FormState } from "@/lib/action-result";
+import type { FormState } from "@/lib/action-result";
 import {
   fieldErrors,
   orderStatusSchema,
@@ -15,10 +16,9 @@ import {
 } from "@/lib/validation/schemas";
 
 /*
- * Every admin mutation is authorized twice:
- *   1. assertAdmin() here, on the server, before touching the database;
- *   2. RLS policies (is_admin()) on the tables, because these queries run with
- *      the admin's own session — never with the service-role key.
+ * Every admin mutation checks assertAdmin() on the server before touching the
+ * in-memory store. The store applies the same rules as the database (unique
+ * slugs, the order status lifecycle, restocking on cancellation).
  */
 
 const FORBIDDEN: FormState = { error: "You do not have permission to do that." };
@@ -73,16 +73,19 @@ export async function saveProduct(productId: string | null, _prev: FormState, fo
     is_featured: v.isFeatured,
   };
 
-  const supabase = await createClient();
-  const { error } = productId
-    ? await supabase.from("products").update(row).eq("id", productId)
-    : await supabase.from("products").insert(row);
+  const { products, categories } = db();
+  if (products.some((p) => p.slug === row.slug && p.id !== productId)) {
+    return { fieldErrors: { slug: ["This slug is already in use."] } };
+  }
+  if (!categories.some((c) => c.id === row.category_id)) return { fieldErrors: { categoryId: ["Choose a category."] } };
 
-  if (error) {
-    if (error.code === "23505") return { fieldErrors: { slug: ["This slug is already in use."] } };
-    if (error.code === "42501") return FORBIDDEN;
-    console.error("[admin] save product failed", { code: error.code, message: error.message });
-    return { error: GENERIC_ERROR };
+  const now = new Date().toISOString();
+  if (productId) {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return { error: "Product not found." };
+    Object.assign(product, row, { updated_at: now });
+  } else {
+    products.push({ ...row, id: crypto.randomUUID(), currency: "usd", created_at: now, updated_at: now });
   }
 
   revalidatePath("/", "layout");
@@ -94,13 +97,9 @@ export async function setProductActive(productId: string, isActive: boolean): Pr
   if (denied) return denied;
   if (!/^[0-9a-f-]{36}$/i.test(productId)) return { error: "Invalid product." };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .update({ is_active: isActive })
-    .eq("id", productId)
-    .select("id");
-  if (error || !data?.length) return { error: error ? GENERIC_ERROR : "Product not found." };
+  const product = db().products.find((p) => p.id === productId);
+  if (!product) return { error: "Product not found." };
+  product.is_active = isActive;
 
   revalidatePath("/", "layout");
   return { ok: true, message: isActive ? "Product activated." : "Product deactivated." };
@@ -116,13 +115,9 @@ export async function adjustStock(_prev: FormState, formData: FormData): Promise
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid stock quantity." };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("products")
-    .update({ stock_quantity: parsed.data.stockQuantity })
-    .eq("id", parsed.data.productId)
-    .select("id");
-  if (error || !data?.length) return { error: error ? GENERIC_ERROR : "Product not found." };
+  const product = db().products.find((p) => p.id === parsed.data.productId);
+  if (!product) return { error: "Product not found." };
+  product.stock_quantity = parsed.data.stockQuantity;
 
   revalidatePath("/", "layout");
   return { ok: true, message: "Stock updated." };
@@ -138,24 +133,11 @@ export async function updateOrderStatus(_prev: FormState, formData: FormData): P
   });
   if (!parsed.success) return { error: "Choose a valid status." };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ status: parsed.data.status })
-    .eq("id", parsed.data.orderId)
-    .select("id");
-
-  if (error) {
-    if (error.message.includes("ORDER_NOT_PAID")) {
-      return { error: "This order has not been paid yet, so it cannot be fulfilled." };
-    }
-    if (error.message.includes("INVALID_STATUS_TRANSITION")) {
-      return { error: "That status change is not allowed for this order." };
-    }
-    console.error("[admin] update order status failed", { code: error.code, message: error.message });
-    return { error: GENERIC_ERROR };
-  }
-  if (!data?.length) return { error: "Order not found." };
+  const result = changeOrderStatus(parsed.data.orderId, parsed.data.status);
+  if (result === "NOT_FOUND") return { error: "Order not found." };
+  if (result === "ORDER_NOT_PAID") return { error: "This order has not been paid yet, so it cannot be fulfilled." };
+  if (result === "INVALID_STATUS_TRANSITION") return { error: "That status change is not allowed for this order." };
+  await updateDemoSession((session) => rememberStatus(session, parsed.data.orderId, parsed.data.status));
 
   try {
     await sendOrderStatusUpdate(parsed.data.orderId);

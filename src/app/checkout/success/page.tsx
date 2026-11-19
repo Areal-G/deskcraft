@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button";
 export const metadata: Metadata = { title: "Order status" };
 
 /**
- * Stripe redirects here after checkout. The redirect itself proves nothing:
- * the page only reports the order state written by the verified webhook.
+ * Checkout redirects here once the order is placed. The page only reports
+ * the stored order state, for orders the visitor is allowed to see.
  */
 export default async function CheckoutSuccessPage({ searchParams }: PageProps<"/checkout/success">) {
   const { session_id } = await searchParams;
