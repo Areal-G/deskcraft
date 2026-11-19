@@ -38,17 +38,6 @@ The project focuses on the parts of e-commerce that are easy to get wrong:
 
 All products, prices and accounts are fictional. Prices are in USD.
 
-## Try the demo
-
-Run it locally (see [Getting started](#getting-started)), then sign in with the demo accounts created by `npm run seed:users`:
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Customer | `customer@deskcraft.test` | see `DEMO_CUSTOMER_PASSWORD` in `.env.example` |
-| Admin | `admin@deskcraft.test` | see `DEMO_ADMIN_PASSWORD` in `.env.example` |
-
-The customer comes with six demo orders, one in each lifecycle state, from `scripts/seed-demo-orders.sql`. With Stripe test keys configured, pay with card `4242 4242 4242 4242`, any future expiry and any CVC.
-
 ## Features
 
 ### A catalog with live stock
@@ -151,7 +140,7 @@ Revenue from paid orders, the fulfilment queue, orders awaiting payment and low 
 
 ## Screenshots
 
-All screenshots come from the running app with the seeded demo data: desktop at 1440×900 and mobile at 390×844, both at retina resolution. Images switch to dark versions when GitHub is in dark mode.
+All screenshots come from the running app with the seeded sample data: desktop at 1440×900 and mobile at 390×844, both at retina resolution. Images switch to dark versions when GitHub is in dark mode.
 
 ## Tech stack
 
@@ -301,14 +290,10 @@ Create `.env.local` and fill in the Supabase URL and keys printed by `npx supaba
 cp .env.example .env.local
 ```
 
-Create the demo accounts and their order history:
+Set `SEED_OWNER_EMAIL` and `SEED_OWNER_PASSWORD` in `.env.local`, then create your admin account and a sample customer with one order in each lifecycle state:
 
 ```bash
-npm run seed:users
-```
-
-```bash
-docker exec -i supabase_db_deskcraft psql -U postgres -d postgres < scripts/seed-demo-orders.sql
+npm run seed
 ```
 
 Run the app on the port the auth redirect URLs expect:
@@ -344,7 +329,8 @@ Without Stripe keys, everything except paying works.
 | `STRIPE_WEBHOOK_SECRET` | for webhooks | Endpoint signing secret, or the one printed by `stripe listen` |
 | `RESEND_API_KEY` | optional | Without it, emails are logged instead of sent |
 | `EMAIL_FROM` | optional | Sender address. `onboarding@resend.dev` works for testing. |
-| `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`, `DEMO_CUSTOMER_EMAIL`, `DEMO_CUSTOMER_PASSWORD` | local only | Used by `npm run seed:users` |
+| `SEED_OWNER_EMAIL`, `SEED_OWNER_PASSWORD` | for seeding | Admin login created by `npm run seed` |
+| `E2E_PORT`, `MAILPIT_URL` | optional | Playwright end-to-end tests only |
 
 </details>
 
@@ -362,7 +348,7 @@ Without Stripe keys, everything except paying works.
 | `npm run test:db` | pgTAP database tests |
 | `npm run db:reset` | Recreate the local database from migrations and seed |
 | `npm run db:types` | Regenerate `src/lib/types/database.ts` |
-| `npm run seed:users` | Create the demo admin and customer |
+| `npm run seed` | Create the owner admin account and sample orders |
 | `npm run format` | Prettier |
 
 </details>
@@ -394,7 +380,7 @@ supabase/
   migrations/              schema, RLS, SQL functions and triggers
   seed.sql                 6 categories and 12 products
   tests/database/          pgTAP tests
-scripts/                   demo users and demo order history
+scripts/                   owner account and sample order seed
 public/products/           product photography
 tests/ unit/ integration/ e2e/
 ```

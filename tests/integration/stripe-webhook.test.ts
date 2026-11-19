@@ -16,12 +16,15 @@ const WEBHOOK_SECRET = "whsec_integration_test_only";
 const enabled = Boolean(SUPABASE_URL && SERVICE_KEY);
 
 describe.skipIf(!enabled)("POST /api/webhooks/stripe (integration)", () => {
-  const admin = createClient<Database>(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
+  // Created in beforeAll: describe bodies run even when skipped, and
+  // createClient throws without a URL.
+  let admin: ReturnType<typeof createClient<Database>>;
   let POST: (req: Request) => Promise<Response>;
   let userId: string;
   let product: Database["public"]["Tables"]["products"]["Row"];
 
   beforeAll(async () => {
+    admin = createClient<Database>(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
     process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET;
     ({ POST } = await import("@/app/api/webhooks/stripe/route"));
 

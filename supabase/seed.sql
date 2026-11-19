@@ -1,6 +1,6 @@
 -- =============================================================================
--- Deskcraft demo catalog (fictional products). Prices are in cents (USD).
--- Demo users are created separately with `npm run seed:users`, which uses the
+-- Deskcraft sample catalog (fictional products). Prices are in cents (USD).
+-- The owner account and sample orders are created with `npm run seed`, which uses the
 -- Supabase Admin API so passwords are hashed by Supabase Auth.
 -- =============================================================================
 
